@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cyber Threat Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b1120;
+    --panel: #131c31;
+    --border: #23304a;
+    --text: #e2e8f0;
+    --muted: #8a97ad;
+    --accent: #4f8cff;
+    --critical: #ef4444;
+    --high: #f59e0b;
+    --medium: #eab308;
+    --low: #10b981;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .container { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .stat-card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 6px; }
+  .stat-card.critical .value { color: var(--critical); }
+  .stat-card.high .value { color: var(--high); }
+  .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .panel h2 { font-size: 14px; margin: 0 0 16px 0; color: var(--text); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px; border-bottom: 1px solid var(--border); }
+  .badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge.Critical { background: rgba(239,68,68,0.15); color: var(--critical); }
+  .badge.High { background: rgba(245,158,11,0.15); color: var(--high); }
+  .badge.Medium { background: rgba(234,179,8,0.15); color: var(--medium); }
+  .badge.Low { background: rgba(16,185,129,0.15); color: var(--low); }
+  #chat-log { height: 280px; overflow-y: auto; margin-bottom: 12px; font-size: 13px; }
+  .msg { margin-bottom: 12px; }
+  .msg.user { color: var(--accent); }
+  .msg .role { font-weight: 600; margin-bottom: 2px; }
+  .msg .text { white-space: pre-wrap; color: var(--text); }
+  #chat-input-row { display: flex; gap: 8px; }
+  #chat-input { flex: 1; background: #0e1626; border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 13px; }
+  #chat-send { background: var(--accent); border: none; border-radius: 6px; padding: 10px 16px; color: white; cursor: pointer; font-size: 13px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip { background: #0e1626; border: 1px solid var(--border); border-radius: 14px; padding: 4px 10px; font-size: 11px; color: var(--muted); cursor: pointer; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .incident-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; background: #0e1626; }
+  .incident-card .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .incident-card .entity { font-weight: 600; font-size: 13px; }
+  .incident-card .meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .prio-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  .prio-badge.Immediate { background: rgba(239,68,68,0.18); color: var(--critical); }
+  .prio-badge.Urgent { background: rgba(245,158,11,0.18); color: var(--high); }
+  .prio-badge.High { background: rgba(234,179,8,0.18); color: var(--medium); }
+  .prio-badge.Routine { background: rgba(16,185,129,0.18); color: var(--low); }
+  .agent-step { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .agent-step:last-child { border-bottom: none; }
+  .agent-step .agent-name { color: var(--accent); font-weight: 600; min-width: 150px; }
+  .agent-step .agent-msg { color: var(--text); }
+  .feed-stat { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .feed-stat:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🛡 Enterprise Cyber Threat Intelligence Platform</h1>
+    <div class="sub">Real-time flow analysis · AI detection · MITRE ATT&CK mapping</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="stats-row" id="stats-row"></div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Attack Type Breakdown</h2>
+      <canvas id="attackChart" height="180"></canvas>
+    </div>
+    <div class="panel">
+      <h2>MITRE ATT&CK Techniques Observed</h2>
+      <canvas id="mitreChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Top Priority Alerts</h2>
+      <table>
+        <thead><tr><th>Time</th><th>Type</th><th>Source → Dest</th><th>Severity</th></tr></thead>
+        <tbody id="alerts-body"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>🤖 AI Security Copilot <span style="font-weight:400;color:var(--muted);font-size:11px;">(RAG-backed)</span></h2>
+      <div class="chip-row">
+        <div class="chip" onclick="ask('What are the top attacks?')">Top attacks?</div>
+        <div class="chip" onclick="ask('Which users were affected?')">Affected users?</div>
+        <div class="chip" onclick="ask('Show highest risk flows')">Highest risk?</div>
+        <div class="chip" onclick="ask('Recommend next actions')">Recommendations?</div>
+        <div class="chip" onclick="ask('MITRE techniques observed')">MITRE summary?</div>
+        <div class="chip" onclick="ask('malware families')">Malware families?</div>
+      </div>
+      <div id="chat-log"></div>
+      <div id="chat-input-row">
+        <input id="chat-input" placeholder="Ask the copilot a question..." onkeydown="if(event.key==='Enter') send()">
+        <button id="chat-send" onclick="send()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>🔎 AI Incident Investigations <span style="font-weight:400;color:var(--muted);font-size:11px;">(auto-generated, top-risk assets)</span></h2>
+      <div id="incidents-list" style="max-height:420px; overflow-y:auto;"></div>
+    </div>
+    <div class="panel">
+      <h2>🕸 Multi-Agent Collaboration Log</h2>
+      <div id="agent-log" style="max-height:420px; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Suspected Malware Families</h2>
+      <canvas id="malwareChart" height="180"></canvas>
+    </div>
+    <div class="panel">
+      <h2>🌐 Threat Intelligence Feed Matches</h2>
+      <div id="feed-stats"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+async function loadSummary() {
+  const res = await fetch('/api/summary');
+  const d = await res.json();
+  const row = document.getElementById('stats-row');
+  row.innerHTML = `
+    <div class="stat-card"><div class="label">Total Flows</div><div class="value">${d.total_flows}</div></div>
+    <div class="stat-card"><div class="label">Suspicious</div><div class="value">${d.suspicious}</div></div>
+    <div class="stat-card critical"><div class="label">Critical Risk</div><div class="value">${d.critical_risk}</div></div>
+    <div class="stat-card high"><div class="label">High Risk</div><div class="value">${d.high_risk}</div></div>
+    <div class="stat-card"><div class="label">Detection Rate</div><div class="value">${d.detection_rate}%</div></div>
+  `;
+
+  new Chart(document.getElementById('attackChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(d.attack_breakdown),
+      datasets: [{ data: Object.values(d.attack_breakdown), backgroundColor: '#4f8cff' }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8a97ad' } }, y: { ticks: { color: '#8a97ad' } } } }
+  });
+}
+
+async function loadMitre() {
+  const res = await fetch('/api/mitre');
+  const d = await res.json();
+  new Chart(document.getElementById('mitreChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(d),
+      datasets: [{ data: Object.values(d), backgroundColor: ['#4f8cff','#ef4444','#f59e0b','#10b981','#a855f7','#eab308'] }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { color: '#8a97ad', font: { size: 11 } } } } }
+  });
+}
+
+async function loadAlerts() {
+  const res = await fetch('/api/alerts');
+  const d = await res.json();
+  const body = document.getElementById('alerts-body');
+  body.innerHTML = d.slice(0, 12).map(a => `
+    <tr>
+      <td>${new Date(a.timestamp).toLocaleString()}</td>
+      <td>${a.type}</td>
+      <td>${a.src_ip} → ${a.dst_ip}:${a.dst_port}</td>
+      <td><span class="badge ${a.severity}">${a.severity}</span></td>
+    </tr>
+  `).join('');
+}
+
+function ask(q) {
+  document.getElementById('chat-input').value = q;
+  send();
+}
+
+async function send() {
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if (!q) return;
+  const log = document.getElementById('chat-log');
+  log.innerHTML += `<div class="msg user"><div class="role">You</div><div class="text">${q}</div></div>`;
+  input.value = '';
+  log.scrollTop = log.scrollHeight;
+
+  const res = await fetch('/api/copilot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: q })
+  });
+  const d = await res.json();
+  log.innerHTML += `<div class="msg"><div class="role">Copilot</div><div class="text">${d.answer}</div></div>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+async function loadIncidents() {
+  const res = await fetch('/api/investigations');
+  const d = await res.json();
+  const el = document.getElementById('incidents-list');
+  if (!d.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">No investigations yet - run python main.py</div>'; return; }
+  el.innerHTML = d.map(inc => `
+    <div class="incident-card">
+      <div class="head">
+        <span class="entity">${inc.entity} <span style="color:var(--muted);font-weight:400;">(${inc.entity_type})</span></span>
+        <span class="prio-badge ${inc.priority || 'Routine'}">${inc.priority || 'Routine'}</span>
+      </div>
+      <div class="meta">
+        <b>Suspected user:</b> ${inc.suspected_user} &nbsp;|&nbsp; <b>Malware family:</b> ${inc.possible_malware_family} &nbsp;|&nbsp; <b>Max risk:</b> ${inc.max_risk_score}<br>
+        <b>Root cause:</b> ${inc.root_cause}<br>
+        <b>Affected systems:</b> ${(inc.affected_systems || []).slice(0,5).join(', ')}<br>
+        <b>Recommended action:</b> ${inc.recommended_action || 'n/a'}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadAgentLog() {
+  const res = await fetch('/api/agent_log');
+  const d = await res.json();
+  const el = document.getElementById('agent-log');
+  if (!d.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">No agent log yet - run python main.py</div>'; return; }
+  el.innerHTML = d.map(step => `
+    <div class="agent-step">
+      <div class="agent-name">${step.agent}</div>
+      <div class="agent-msg">${step.message}</div>
+    </div>
+  `).join('');
+}
+
+async function loadMalware() {
+  const res = await fetch('/api/malware_families');
+  const d = await res.json();
+  new Chart(document.getElementById('malwareChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(d),
+      datasets: [{ data: Object.values(d), backgroundColor: '#a855f7' }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { color: '#8a97ad' } }, y: { ticks: { color: '#8a97ad', font: { size: 10 } } } }
+    }
+  });
+}
+
+async function loadFeedStats() {
+  const res = await fetch('/api/threat_feed_hits');
+  const d = await res.json();
+  const el = document.getElementById('feed-stats');
+  let html = `<div class="feed-stat"><b>Total flows matching known-bad indicators</b><span>${d.total_hits}</span></div>`;
+  for (const [source, count] of Object.entries(d.by_source || {})) {
+    html += `<div class="feed-stat">${source}<span>${count}</span></div>`;
+  }
+  el.innerHTML = html;
+}
+
+loadSummary();
+loadMitre();
+loadAlerts();
+loadIncidents();
+loadAgentLog();
+loadMalware();
+loadFeedStats();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,62 @@
+[
+  {
+    "agent": "CorrelationAgent",
+    "role": "Correlates raw security events into tagged suspicious/normal flows",
+    "message": "Correlated 8000 flows -> 3491 flagged suspicious.",
+    "details": {
+      "suspicious_count": 3491,
+      "total": 8000
+    }
+  },
+  {
+    "agent": "ThreatHuntingAgent",
+    "role": "Proactively hunts for multi-flow beaconing/C2 patterns invisible to single-flow rules",
+    "message": "Hunted for beaconing patterns across 39 repeat-connecting source IPs; escalated 537 previously-normal flows to Suspicious.",
+    "details": {
+      "beaconing_ips": [
+        "10.0.0.10",
+        "10.0.0.14",
+        "10.0.0.17",
+        "10.0.0.18",
+        "10.0.0.19",
+        "10.0.0.2",
+        "10.0.0.24",
+        "10.0.0.3",
+        "10.0.0.36",
+        "10.0.1.20"
+      ],
+      "newly_caught": 537
+    }
+  },
+  {
+    "agent": "RiskAgent",
+    "role": "Scores risk, maps MITRE techniques, classifies malware family, checks threat feeds",
+    "message": "Scored risk for all flows - 1896 Critical, 934 matched known-bad threat-feed indicators.",
+    "details": {
+      "critical_count": 1896,
+      "feed_hits": 934
+    }
+  },
+  {
+    "agent": "InvestigationAgent",
+    "role": "Builds the knowledge graph and generates structured incident investigation reports",
+    "message": "Built knowledge graph (96 nodes, 16000 edges) and generated 10 structured incident reports for top-risk assets.",
+    "details": {
+      "graph_stats": {
+        "total_nodes": 96,
+        "total_edges": 16000,
+        "users": 27,
+        "ips": 69
+      },
+      "incident_count": 10
+    }
+  },
+  {
+    "agent": "ResponseAgent",
+    "role": "Autonomously decides a recommended response action per investigated incident (SOC analyst role)",
+    "message": "Autonomously triaged 10 incidents; 10 require immediate action.",
+    "details": {
+      "immediate_count": 10
+    }
+  }
+]
